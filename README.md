@@ -1,261 +1,95 @@
-# serverless-e2e-typescript-example
+# Serverless - AWS Node.js Typescript
 
-Code repository for the [blog post](https://rudijs.github.io/2020-04/aws-serverless-typescript-end-to-end-testing-with-jest/) on end to end testing aws serverless api's with Typescript and Jest.
+This project has been generated using the `aws-nodejs-typescript` template from the [Serverless framework](https://www.serverless.com/).
 
-If you find any typo's or cut-n-paste errors or mistakes please let me know.
+For detailed instructions, please refer to the [documentation](https://www.serverless.com/framework/docs/providers/aws/).
 
-Please also comment if you have any improvement suggestions.
+## Installation/deployment instructions
 
-The follow steps and examples was created on April 15th 2020 using:
+Depending on your preferred package manager, follow the instructions below to deploy your project.
 
-- Node v12.16.1
-- and Serverless Framework versions:
+> **Requirements**: NodeJS `lts/fermium (v.14.15.0)`. If you're using [nvm](https://github.com/nvm-sh/nvm), run `nvm use` to ensure you're using the same Node version in local and in your lambda's runtime.
 
-```
-Framework Core: 1.67.3
-Plugin: 3.6.6
-SDK: 2.3.0
-Components: 2.29.1
-```
+### Using NPM
 
-## Setup from scratch
+- Run `npm i` to install the project dependencies
+- Run `npx sls deploy` to deploy this stack to AWS
 
-The following steps are all command line on a Unix platorm, please adjust for your platorm where required.
+### Using Yarn
 
-Create a new directory and chnage to it (for example):
+- Run `yarn` to install the project dependencies
+- Run `yarn sls deploy` to deploy this stack to AWS
 
-`mkdir serverless-e2e-typescript-example`
+## Test your service
 
-`cd serverless-e2e-typescript-example`
+This template contains a single lambda function triggered by an HTTP request made on the provisioned API Gateway REST API `/hello` route with `POST` method. The request body must be provided as `application/json`. The body structure is tested by API Gateway against `src/functions/hello/schema.ts` JSON-Schema definition: it must contain the `name` property.
 
-Create an AWS Lambda serverless API:
+- requesting any other path than `/hello` with any other method than `POST` will result in API Gateway returning a `403` HTTP error code
+- sending a `POST` request to `/hello` with a payload **not** containing a string property named `name` will result in API Gateway returning a `400` HTTP error code
+- sending a `POST` request to `/hello` with a payload containing a string property named `name` will result in API Gateway returning a `200` HTTP status code with a message saluting the provided name and the detailed event processed by the lambda
 
-`npx serverless create --template aws-nodejs-typescript --name api`
+> :warning: As is, this template, once deployed, opens a **public** endpoint within your AWS account resources. Anybody with the URL can actively execute the API Gateway endpoint and the corresponding lambda. You should protect this endpoint with the authentication method of your choice.
 
-Here's an example of the output:
+### Locally
 
-```
-❯ npx serverless create --template aws-nodejs-typescript --name api
-Serverless: Generating boilerplate...
- _______                             __
-|   _   .-----.----.--.--.-----.----|  .-----.-----.-----.
-|   |___|  -__|   _|  |  |  -__|   _|  |  -__|__ --|__ --|
-|____   |_____|__|  \___/|_____|__| |__|_____|_____|_____|
-|   |   |             The Serverless Application Framework
-|       |                           serverless.com, v1.67.3
- -------'
+In order to test the hello function locally, run the following command:
 
-Serverless: Successfully generated boilerplate for template: "aws-nodejs-typescript"
-```
+- `npx sls invoke local -f hello --path src/functions/hello/mock.json` if you're using NPM
+- `yarn sls invoke local -f hello --path src/functions/hello/mock.json` if you're using Yarn
 
-Install the node dependencies
+Check the [sls invoke local command documentation](https://www.serverless.com/framework/docs/providers/aws/cli-reference/invoke-local/) for more information.
 
-`npm install`
+### Remotely
 
-Edit the `serverless.yml` file so that we can set a default stage and region.
-
-Under the `provider` section add:
+Copy and replace your `url` - found in Serverless `deploy` command output - and `name` parameter in the following `curl` command in your terminal or in Postman to test your newly deployed application.
 
 ```
-stage: ${opt:stage, 'dev'}
-region: ${opt:region, 'us-east-1'}
+curl --location --request POST 'https://myApiEndpoint/dev/hello' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "name": "Frederic"
+}'
 ```
 
-Lets make our API endpoint output only a message and not echo the Lambda `input`
+## Template features
 
-Edit `handler.ts`, comment out line 9
+### Project structure
 
-`// input: event`
+The project code base is mainly located within the `src` folder. This folder is divided in:
 
-Deploy the API to the 'dev' stage.
-
-Example deployment command and output:
-
-```
-> npx serverless --stage dev deploy
-Serverless: Bundling with Webpack...
-Time: 394ms
-Built at: 04/15/2020 1:38:22 PM
-         Asset      Size  Chunks                   Chunk Names
-    handler.js  1.28 KiB       0  [emitted]        handler
-handler.js.map  5.27 KiB       0  [emitted] [dev]  handler
-Entrypoint handler = handler.js handler.js.map
-[0] ./handler.ts 316 bytes {0} [built]
-[1] external "source-map-support/register" 42 bytes {0} [built]
-Serverless: Package lock found - Using locked versions
-Serverless: Packing external modules: source-map-support@^0.5.10
-Serverless: Packaging service...
-Serverless: Creating Stack...
-Serverless: Checking Stack create progress...
-........
-Serverless: Stack create finished...
-Serverless: Uploading CloudFormation file to S3...
-Serverless: Uploading artifacts...
-Serverless: Uploading service api.zip file to S3 (289.14 KB)...
-Serverless: Validating template...
-Serverless: Updating Stack...
-Serverless: Checking Stack update progress...
-..............................
-Serverless: Stack update finished...
-Service Information
-service: api
-stage: dev
-region: us-east-1
-stack: api-dev
-resources: 11
-api keys:
-  None
-endpoints:
-  GET - https://driyuairb6.execute-api.us-east-1.amazonaws.com/dev/hello
-functions:
-  hello: api-dev-hello
-layers:
-  None
-Serverless: Run the "serverless" command to setup monitoring, troubleshooting and testing.
-```
-
-Lets call the new API endpoint, copy the `hello` endpoint from your deployment:
+- `functions` - containing code base and configuration for your lambda functions
+- `libs` - containing shared code base between your lambdas
 
 ```
-❯ curl https://driyuairb6.execute-api.us-east-1.amazonaws.com/dev/hello
-{
-  "message": "Go Serverless Webpack (Typescript) v1.0! Your function executed successfully!"
-}
-``
+.
+├── src
+│   ├── functions               # Lambda configuration and source code folder
+│   │   ├── hello
+│   │   │   ├── handler.ts      # `Hello` lambda source code
+│   │   │   ├── index.ts        # `Hello` lambda Serverless configuration
+│   │   │   ├── mock.json       # `Hello` lambda input parameter, if any, for local invocation
+│   │   │   └── schema.ts       # `Hello` lambda input event JSON-Schema
+│   │   │
+│   │   └── index.ts            # Import/export of all lambda configurations
+│   │
+│   └── libs                    # Lambda shared code
+│       └── apiGateway.ts       # API Gateway specific helpers
+│       └── handlerResolver.ts  # Sharable library for resolving lambda handlers
+│       └── lambda.ts           # Lambda middleware
+│
+├── package.json
+├── serverless.ts               # Serverless service file
+├── tsconfig.json               # Typescript compiler configuration
+├── tsconfig.paths.json         # Typescript paths
+└── webpack.config.js           # Webpack configuration
 ```
 
-Great! Our new typescript API endpoint is working, lets setup the end-to-end testing.
+### 3rd party libraries
 
-Install test dependencies:
+- [json-schema-to-ts](https://github.com/ThomasAribart/json-schema-to-ts) - uses JSON-Schema definitions used by API Gateway for HTTP request validation to statically generate TypeScript types in your lambda's handler code base
+- [middy](https://github.com/middyjs/middy) - middleware engine for Node.Js lambda. This template uses [http-json-body-parser](https://github.com/middyjs/middy/tree/master/packages/http-json-body-parser) to convert API Gateway `event.body` property, originally passed as a stringified JSON, to its corresponding parsed object
+- [@serverless/typescript](https://github.com/serverless/typescript) - provides up-to-date TypeScript definitions for your `serverless.ts` service file
 
-`npm i -D jest ts-jest @types/jest axios`
+### Advanced usage
 
-Create a testing directory and Jest config file
-
-```
-mkdir e2e
-touch e2e/jest.config.js
-```
-
-This is how your `jest.config.js` file should be:
-
-```
-module.exports = {
-  testEnvironment: "node",
-  transform: {
-    "^.+\\.tsx?$": "ts-jest",
-  },
-}
-```
-
-You can create any testing file structure you prefer but for this example we'll be creating files of the test functions then importing them into a single test file describing all the tests in order and assigning them with the imported functions.
-
-Create a test file for the `hello` API endpoint, I prefer to prefix with a number as it's common to test API endpoints in sequence:
-
-Create the file `100_hello.ts` with the code content:
-
-```
-import axios from "axios"
-
-const url = process.env.URL
-
-export const helloTest = () => {
-  test("should reply success", async () => {
-    const res = await axios.get(`${url}/hello`)
-    expect(res.status).toEqual(200)
-    expect(res.data.message).toMatch(/Your function executed successfully!/)
-  })
-}
-```
-
-Create the test suite runner file `index.test.js` with the code content:
-
-```
-import { helloTest } from "./100_hello"
-
-describe("hello", helloTest)
-```
-
-Lets run the end-to-end test manually first, then we'll create an npm script to simplify it:
-
-```
- URL=https://driyuairb6.execute-api.us-east-1.amazonaws.com/dev ./node_modules/.bin/jest -c e2e/jest.config.js  --runInBand --bail
-ts-jest[config] (WARN) message TS151001: If you have issues related to imports, you should consider setting `esModuleInterop` to `true` in your TypeScript configuration file (usually `tsconfig.json`). See https://blogs.msdn.microsoft.com/typescript/2018/01/31/announcing-typescript-2-7/#easier-ecmascript-module-interoperability for more information.
- PASS  e2e/index.test.ts
-  hello
-    ✓ should reply success (474ms)
-
-Test Suites: 1 passed, 1 total
-Tests:       1 passed, 1 total
-Snapshots:   0 total
-Time:        1.059s, estimated 2s
-Ran all test suites.
-```
-
-Yay! Our end-to-end test passes.
-
-Let's fix that ts-jest warning by adding `"esModuleInterop": true` in the tsconfig.json file
-
-`"esModuleInterop": true`
-
-Run the tests manually again:
-
-```
-URL=https://driyuairb6.execute-api.us-east-1.amazonaws.com/dev ./node_modules/.bin/jest -c e2e/jest.config.js --runInBand --bail
- PASS  e2e/index.test.ts
-  hello
-    ✓ should reply success (489ms)
-
-Test Suites: 1 passed, 1 total
-Tests:       1 passed, 1 total
-Snapshots:   0 total
-Time:        0.96s, estimated 2s
-Ran all test suites.
-```
-
-Next lets create an npm script in `package.json`:
-
-```
-"scripts": {
-"test": "echo \"Error: no test specified\" && exit 1",
-"e2e": "jest -c e2e/jest.config.js --runInBand --bail e2e"
-},
-```
-
-Now we can run our tests with:
-
-```
-URL=https://driyuairb6.execute-api.us-east-1.amazonaws.com/dev npm run e2e
-
-> api@1.0.0 e2e /home/rudi/projects/serverless-e2e-typescript-example
-> jest -c e2e/jest.config.js --runInBand e2e
-
- PASS  e2e/index.test.ts
-  hello
-    ✓ should reply success (474ms)
-
-Test Suites: 1 passed, 1 total
-Tests:       1 passed, 1 total
-Snapshots:   0 total
-Time:        1.001s
-Ran all test suites matching /e2e/i.
-```
-
-Finally lets clean up with:
-
-`npx serverless --stage dev remove`
-
-```
-npx serverless --stage dev remove
-Serverless: Getting all objects in S3 bucket...
-Serverless: Removing objects in S3 bucket...
-Serverless: Removing Stack...
-Serverless: Checking Stack removal progress...
-.............
-Serverless: Stack removal finished...
-```
-
-## Credits
-
-- [Folder structure suggestion for sequential test execution: @sahil5695](https://github.com/facebook/jest/issues/6194#issuecomment-419837314)
-- [Jest Project Documentation](https://jestjs.io/docs/en/configuration)
+Any tsconfig.json can be used, but if you do, set the environment variable `TS_NODE_CONFIG` for building the application, eg `TS_NODE_CONFIG=./tsconfig.app.json npx serverless webpack`
